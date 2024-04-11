@@ -52,9 +52,33 @@ def get_db() -> mysql.connector.connection.MySQLConnection:
         user=os.getenv("PERSONAL_DATA_DB_USERNAME", "root"),
         password=os.getenv("PERSONAL_DATA_DB_PASSWORD", ""),
         host=os.getenv("PERSONAL_DATA_DB_HOST", "localhost"),
-        database=os.getenv("PERSONAL_DATA_DB_NAME", "")
+        database=os.getenv("PERSONAL_DATA_DB_NAME")
     )
     return conn
+
+
+def main() -> None:
+    """Retrieves all rows in the users table and
+    display each row under a filtered format"""
+
+    conn = get_db()
+    user_logger = get_logger()
+
+    fields = "name,email,phone,ssn,password,ip,last_login,user_agent"
+    query = "SELECT {} FROM users".format(fields)
+    columns = fields.split(",")
+    with conn.cursor() as cursor:
+        cursor.execute(query)
+        users = cursor.fetchall()
+
+        for user in users:
+            record = map(
+                lambda x: '{}={}'.format(x[0], x[1]),
+                zip(columns, user),
+            )
+            message = '{};'.format('; '.join(list(record)))
+            user_logger.info(message)
+    conn.close()
 
 
 class RedactingFormatter(logging.Formatter):
@@ -75,3 +99,7 @@ class RedactingFormatter(logging.Formatter):
             self.fields, self.REDACTION, record.getMessage(), self.SEPARATOR
         )
         return super().format(record)
+
+
+if __name__ == "__main__":
+    main()
