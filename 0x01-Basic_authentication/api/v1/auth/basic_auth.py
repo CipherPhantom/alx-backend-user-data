@@ -50,10 +50,11 @@ class BasicAuth(Auth):
         if not isinstance(base64_authorization_header, str):
             return None
         try:
-            decoded = base64.b64decode(base64_authorization_header)
+            decoded = base64.b64decode(
+                base64_authorization_header).decode('utf-8')
         except Exception:
             return None
-        return decoded.decode('utf-8')
+        return decoded
 
     def extract_user_credentials(
             self,
@@ -101,3 +102,15 @@ class BasicAuth(Auth):
         except Exception:
             return None
         return None
+
+    def current_user(self, request=None) -> TypeVar('User'):
+        """Overloads Auth and retrieves the User instance for a request"""
+        auth_header = self.authorization_header(request)
+        auth_header_b64 = self.extract_base64_authorization_header(auth_header)
+        decoded = self.decode_base64_authorization_header(auth_header_b64)
+        user_credentials = self.extract_user_credentials(decoded)
+        user = self.user_object_from_credentials(
+            user_email=user_credentials[0],
+            user_pwd=user_credentials[1]
+            )
+        return user
